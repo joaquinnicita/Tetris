@@ -6,8 +6,13 @@
         LD R2, SQUARE_SIZE  ; Tamaño del cuadrado
 
 MAIN_LOOP
-        JSR DRAW_SQUARE
+        ; Guardar la posición actual del cuadrado para borrar después
+        ST R0, PREV_X       ; Guardar la posición X anterior
+        ST R1, PREV_Y       ; Guardar la posición Y anterior
+
+        JSR ERASE_SQUARE    ; Borrar el cuadrado en la posición anterior
         JSR CHECK_INPUT
+        JSR DRAW_SQUARE    ; Dibujar el cuadrado en la nueva posición
         JSR DELAY
         BRnzp MAIN_LOOP
 
@@ -24,6 +29,24 @@ CALC_Y_OFFSET
 CALC_Y_DONE
         LD R4, SQUARE_COLOR
         STR R4, R3, #0      ; Dibujar pixel
+        RET
+
+ERASE_SQUARE
+        ; Restaurar la posición X e Y anteriores
+        LD R0, PREV_X       ; Cargar la posición X anterior
+        LD R1, PREV_Y       ; Cargar la posición Y anterior
+        LD R3, DISPLAY_ADDR
+        ADD R3, R3, R0      ; Añadir offset X
+        LD R4, SCREEN_WIDTH
+        AND R5, R1, R1      ; Copiar R1 a R5
+ERASE_Y_OFFSET
+        BRz ERASE_Y_DONE    ; Si R5 es 0, terminamos
+        ADD R3, R3, R4      ; Añadir ancho de pantalla a R3
+        ADD R5, R5, #-1     ; Decrementar R5
+        BRnzp ERASE_Y_OFFSET
+ERASE_Y_DONE
+        LD R4, ERASE_COLOR  ; Color para borrar el pixel
+        STR R4, R3, #0      ; Borrar pixel
         RET
 
 CHECK_INPUT
@@ -73,6 +96,7 @@ SQUARE_X     .FILL #62
 SQUARE_Y     .FILL #62
 SQUARE_SIZE  .FILL #5
 SQUARE_COLOR .FILL xFFFF
+ERASE_COLOR  .FILL x0000    ; Color para borrar el pixel
 DELAY_COUNT  .FILL #5000
 LEFT_KEY     .FILL x61      ; 'a' en ASCII
 RIGHT_KEY    .FILL x64      ; 'd' en ASCII
@@ -81,5 +105,9 @@ SCREEN_WIDTH .FILL #128
 MAX_X        .FILL #127
 KBSR         .FILL xFE00
 KBDR         .FILL xFE02
+
+; Nuevos datos
+PREV_X       .BLKW #1      ; Almacena la posición X anterior
+PREV_Y       .BLKW #1      ; Almacena la posición Y anterior
 
 .END
