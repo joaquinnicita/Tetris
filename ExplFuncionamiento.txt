@@ -1,0 +1,127 @@
+1. Inicialización
+Al principio del código, se definen las posiciones iniciales de la pieza, en las coordenadas INIT_COL (columna) y INIT_ROW (fila):
+
+.ORIG x3000
+; Inicialización
+LD R1, INIT_COL  ; Carga la columna inicial en el registro R1
+LD R2, INIT_ROW  ; Carga la fila inicial en el registro R2
+R1 y R2 contienen las coordenadas iniciales de la pieza, de modo que R1 es la posición horizontal (columna) y R2 es la posición vertical (fila).
+El programa comienza a ejecutarse desde la dirección de memoria x3000.
+
+---------
+2. Bucle Principal (MAIN_LOOP)
+El bucle principal se ejecuta constantemente durante el juego, repitiéndose para gestionar el estado de la pieza. Aquí es donde se verifica si el jugador ha presionado alguna tecla para mover la pieza y se gestionan las colisiones.
+
+MAIN_LOOP
+    JSR ERASE_PIECE     ; Borra la pieza de la pantalla
+    ST R1, SAVE_COL     ; Guarda la posición de la columna de la pieza
+    ST R2, SAVE_ROW     ; Guarda la posición de la fila de la pieza
+    
+    JSR CHECK_INPUT     ; Verifica si el jugador ha presionado alguna tecla
+    
+    JSR CHECK_COLLH     ; Verifica si la pieza colisionó en el eje horizontal (izquierda o derecha)
+    BRz RESTORE_POS     ; Si hubo colisión horizontal, restaura la posición anterior de la pieza
+    
+    JSR MOVE_DOWN       ; Mueve la pieza hacia abajo
+    JSR CHECK_COLLISION ; Verifica si la pieza llegó al fondo o chocó con algo
+    BRz PLACE_PIECE     ; Si hubo colisión, coloca la pieza permanentemente
+    
+    JSR DRAW_PIECE      ; Dibuja la pieza en su nueva posición
+    JSR DELAY           ; Introduce un pequeño retraso para que el juego no vaya demasiado rápido
+    BRnzp MAIN_LOOP     ; Si todo fue bien, repite el bucle
+
+Descripción paso a paso del bucle principal:
+JSR ERASE_PIECE: Borra la pieza de su posición actual en la pantalla.
+ST R1, SAVE_COL y ST R2, SAVE_ROW: Guarda las coordenadas actuales de la pieza en dos variables de memoria (SAVE_COL y SAVE_ROW) antes de moverla. Esto es útil para restaurar la posición si se detecta una colisión.
+JSR CHECK_INPUT: Verifica si el jugador presionó una tecla para mover la pieza (izquierda o derecha).
+JSR CHECK_COLLH: Verifica si la pieza colisionó con el borde izquierdo o derecho de la pantalla.
+BRz RESTORE_POS: Si se detecta una colisión horizontal, se salta a RESTORE_POS para restaurar la posición original de la pieza.
+JSR MOVE_DOWN: Si no hubo colisión horizontal, mueve la pieza una fila hacia abajo.
+JSR CHECK_COLLISION: Verifica si la pieza ha llegado al fondo de la pantalla o ha chocado con otra pieza.
+BRz PLACE_PIECE: Si se detecta una colisión (por ejemplo, al llegar al fondo o a otra pieza), salta a PLACE_PIECE para colocar la pieza permanentemente.
+JSR DRAW_PIECE: Dibuja la pieza en su nueva posición.
+JSR DELAY: Introduce un pequeño retraso para controlar la velocidad del juego.
+BRnzp MAIN_LOOP: Vuelve al principio del bucle si no hubo ningún problema.
+
+----------
+3. Comprobación de Entrada del Jugador (CHECK_INPUT)
+El programa verifica si el jugador presionó alguna tecla para mover la pieza a la izquierda o a la derecha. Se verifican específicamente las teclas 'a' y 'd' (ASCII), que permiten mover la pieza.
+
+CHECK_INPUT
+    LDI R0, KBSR         ; Carga el estado del teclado
+    BRzp CHECK_INPUT_END ; Si no se presionó ninguna tecla, salta al final
+    
+    LDI R0, KBDR         ; Carga el valor de la tecla presionada
+    LD R3, LEFT_KEY      ; Carga el valor ASCII de 'a' (izquierda)
+    ADD R3, R0, R3       ; Compara la tecla presionada con 'a'
+    BRz MOVE_LEFT        ; Si es 'a', mueve la pieza a la izquierda
+    
+    LD R3, RIGHT_KEY     ; Carga el valor ASCII de 'd' (derecha)
+    ADD R3, R0, R3       ; Compara la tecla presionada con 'd'
+    BRz MOVE_RIGHT       ; Si es 'd', mueve la pieza a la derecha
+    
+CHECK_INPUT_END
+    RET
+Descripción:
+LDI R0, KBSR: Lee el estado del teclado (si alguna tecla fue presionada).
+BRzp CHECK_INPUT_END: Si no se ha presionado ninguna tecla, salta al final de la función.
+LDI R0, KBDR: Carga el código de la tecla presionada.
+LD R3, LEFT_KEY y LD R3, RIGHT_KEY: Carga los valores de las teclas 'a' y 'd'.
+ADD R3, R0, R3: Compara la tecla presionada con las teclas 'a' y 'd'.
+BRz MOVE_LEFT o BRz MOVE_RIGHT: Si la tecla es 'a', mueve la pieza a la izquierda; si es 'd', mueve la pieza a la derecha.
+
+--------
+4. Movimiento de la Pieza
+Cuando el jugador presiona las teclas de movimiento, el programa mueve la pieza hacia la izquierda o hacia la derecha.
+
+MOVE_LEFT
+    ADD R1, R1, #-1     ; Decrementa la columna (mueve a la izquierda)
+    RET
+
+MOVE_RIGHT
+    ADD R1, R1, #1      ; Incrementa la columna (mueve a la derecha)
+    RET
+MOVE_LEFT: Disminuye el valor de R1 para mover la pieza una posición a la izquierda.
+MOVE_RIGHT: Aumenta el valor de R1 para mover la pieza una posición a la derecha.
+
+---------
+5. Comprobación de Colisiones
+El código verifica si la pieza ha colisionado con los límites de la pantalla o con otras piezas.
+
+Colisiones Horizontales (CHECK_COLLH):
+
+CHECK_COLLH
+    AND R0, R1, R1      ; Verifica si R1 es negativo (fuera de los límites)
+    BRn COLLISION_H     ; Si es negativo, hay colisión con el borde izquierdo
+    
+    LD R3, SCREEN_WIDTH ; Carga el ancho de la pantalla
+    NOT R3, R3          ; Prepara para la comparación con el borde derecho
+    ADD R3, R3, #1
+    ADD R3, R1, R3
+    BRzp COLLISION_H    ; Si R1 es mayor que el ancho, hay colisión con el borde derecho
+R1 contiene la posición horizontal de la pieza.
+Si R1 es negativo, la pieza está fuera de los límites a la izquierda, y si es mayor que el ancho de la pantalla, está fuera a la derecha. En ambos casos, se detecta una colisión horizontal.
+Colisiones Verticales (CHECK_COLLISION):
+
+CHECK_COLLISION
+    LD R0, SCREEN_HEIGHT
+    NOT R0, R0
+    ADD R0, R0, #1
+    ADD R0, R2, R0
+    BRzp COLLISION
+
+R2 contiene la posición vertical de la pieza.
+Si R2 es mayor o igual que la altura de la pantalla, se detecta una colisión con el fondo.
+
+-------
+6. Colocación de la Pieza
+Cuando la pieza no puede seguir moviéndose (por ejemplo, cuando ha llegado al fondo o ha chocado con otra pieza), se coloca permanentemente en su posición actual.
+
+PLACE_PIECE
+    ADD R2, R2, #-1    ; Retrocede la pieza una fila
+    JSR DRAW_PIECE     ; Dibuja la pieza
+    JSR RESET_POSITION ; Restaura la posición inicial
+    BRnzp MAIN_LOOP
+ADD R2, R2, #-1: Retrocede la pieza una fila.
+JSR DRAW_PIECE: Dibuja la pieza en la pantalla.
+JSR RESET_POSITION: Restablece la posición inicial para la próxima pieza.
