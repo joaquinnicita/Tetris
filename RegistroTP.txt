@@ -1,0 +1,11 @@
+Juan Pablo Comparada:
+Hizo el borde de la pantalla, una linea de 6 pixeles que esta a la izquierda abajo y a la derecha. (borde.asm)
+Rafael Fernandez:
+Hizo un prototipo de bloque que va cayendo con el tiempo. Tambien un delay para que no caiga tan rapido y sea mas visible.
+(cuadrado.asm)
+Joaquin Nicita:
+Lider del grupo, asignacion de tareas es instrucciones y el archivo README.md donde esta documentado el flujo del juego y
+objetivos, sistema de juego, etc...
+Jenaro Moretti:
+Diseño de pieza snake con .FILLS. Implementacion de caida de la pieza junto con movimiento lateral de izq a der. Funcionalidad
+que hace que la pieza se genere de vuelta arriba de la pantalla cuando llega al fondo.
